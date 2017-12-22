@@ -5,24 +5,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-f=open('dataset_1.csv')  
+f=open('2330.csv')  
 df=pd.read_csv(f)     
-data=np.array(df['max'])
-data=data[::-1]      
+data=np.array(df['price'])
+#we don't need to reverse the order of data
+#data=data[::-1]      
 
 #plt.figure()
 #plt.plot(data)
 #plt.show()
-normalize_data=(data-np.mean(data))/np.std(data)  
+data_mean = np.mean(data)
+data_std = np.std(data)
+normalize_data=(data-data_mean)/data_std
 normalize_data=normalize_data[:,np.newaxis]       
 
 
-time_step=20      
-rnn_unit=10       
-batch_size=60     
-input_size=1      
-output_size=1     
-lr=0.0006         
+time_step=5
+rnn_unit=20
+batch_size=5
+input_size=1
+output_size=1
+lr=0.0006
 train_x,train_y=[],[]   
 for i in range(len(normalize_data)-time_step-1):
     x=normalize_data[i:i+time_step]
@@ -70,7 +73,7 @@ def train_lstm():
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         
-        for i in range(1): #We can increase the number of iterations to gain better result.
+        for i in range(300): #We can increase the number of iterations to gain better result.
             step=0
             start=0
             end=start+batch_size
@@ -79,34 +82,36 @@ def train_lstm():
                 start+=batch_size
                 end=start+batch_size
                 
-                if step%10==0:
-                    print("Number of iterations:",i," loss:",loss_)
-                    print("model_save",saver.save(sess,'model_save1\\modle.ckpt'))
-                    #I run the code in windows 10,so use  'model_save1\\modle.ckpt'
-                    #if you run it in Linux,please use  'model_save1/modle.ckpt'
-                step+=1
+            if i%10==0:
+                print("Number of iterations:",i," loss:",loss_)
+                print("model_save",saver.save(sess,'model_save1/modle.ckpt'))
+                #I run the code in windows 10,so use  'model_save1\\modle.ckpt'
+                #if you run it in Linux,please use  'model_save1/modle.ckpt'
+
+            step+=1
         print("The train has finished")
 train_lstm()
 
 
 def prediction():
-    with tf.variable_scope("sec_lstm",reuse=True):
+    with tf.variable_scope("sec_lstm", reuse=tf.AUTO_REUSE):
         pred,_=lstm(1)    
     saver=tf.train.Saver(tf.global_variables())
     with tf.Session() as sess:
-        saver.restore(sess, 'model_save1\\modle.ckpt') 
+        saver.restore(sess, 'model_save1/modle.ckpt') 
         #I run the code in windows 10,so use  'model_save1\\modle.ckpt'
         #if you run it in Linux,please use  'model_save1/modle.ckpt'
         prev_seq=train_x[-1]
         predict=[]
-        for i in range(100):
+        for i in range(5):
             next_seq=sess.run(pred,feed_dict={X:[prev_seq]})
+            print("predict next %i day's price:%f(%f)", 
+                      i, next_seq[-1] * data_mean + data_std, next_seq[-1])
             predict.append(next_seq[-1])
             prev_seq=np.vstack((prev_seq[1:],next_seq[-1]))
         
         plt.figure()
         plt.plot(list(range(len(normalize_data))), normalize_data, color='b')
         plt.plot(list(range(len(normalize_data), len(normalize_data) + len(predict))), predict, color='r')
-        plt.show()
-        
+        plt.show()        
 prediction() 
