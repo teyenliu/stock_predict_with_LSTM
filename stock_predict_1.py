@@ -21,8 +21,8 @@ normalize_data=normalize_data[:,np.newaxis]
 
 
 time_step=5
-rnn_unit=20
-batch_size=5
+rnn_unit=25
+batch_size=50
 input_size=1
 output_size=1
 lr=0.0006
@@ -106,7 +106,7 @@ def prediction():
         for i in range(5):
             next_seq=sess.run(pred,feed_dict={X:[prev_seq]})
             print("predict next %i day's price:%f(%f)", 
-                      i, next_seq[-1] * data_mean + data_std, next_seq[-1])
+                      i, next_seq[-1] * data_std + data_mean, next_seq[-1])
             predict.append(next_seq[-1])
             prev_seq=np.vstack((prev_seq[1:],next_seq[-1]))
         
