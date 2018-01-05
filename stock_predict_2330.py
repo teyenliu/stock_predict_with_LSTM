@@ -10,7 +10,7 @@ input_size=8
 output_size=1
 lr=0.0006         #学习率
 time_step=5
-batch_size=100
+batch_size=60
 
 #——————————————————导入数据——————————————————————
 data = pd.read_csv("2330_v2.csv", header=0, sep='\t', 
@@ -29,15 +29,19 @@ data = data.convert_objects(convert_numeric=True)
 
 #generate label data: use the previous date's close price
 data['label'] = data['close']
-for i in range(0, len(data)-1):
-    data.loc[i, 'label'] = data.loc[i+1, 'close']
+
+for i in range(0, data_num):
+    if i < data_num -1:
+        data.loc[i, 'label'] = data.loc[i+1, 'close']
+    else:
+        data.loc[i, 'label'] = data.loc[i, 'close']
 
 # transform pandas to numpy
 data=data.iloc[:,1:10].values  #取第2-10列
 
 
 #获取训练集
-def get_train_data(batch_size=batch_size,time_step=time_step,train_begin=0,train_end=data_num-5):
+def get_train_data(batch_size=batch_size,time_step=time_step,train_begin=0,train_end=data_num-1):
     batch_index=[]
     data_train=data[train_begin:train_end]
     normalized_train_data=(data_train-np.mean(data_train,axis=0))/np.std(data_train,axis=0)  #标准化
@@ -104,7 +108,7 @@ def lstm(X):
 
 #————————————————训练模型————————————————————
 
-def train_lstm(batch_size=batch_size,time_step=time_step,train_begin=0,train_end=data_num-10):
+def train_lstm(batch_size=batch_size,time_step=time_step,train_begin=0,train_end=data_num-1):
     X=tf.placeholder(tf.float32, shape=[None,time_step,input_size])
     Y=tf.placeholder(tf.float32, shape=[None,time_step,output_size])
     batch_index,train_x,train_y=get_train_data(batch_size,time_step,train_begin,train_end)
