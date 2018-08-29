@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-rnn_unit=10       #隐层数量
+rnn_unit=10         #隐层神经元的个数
+lstm_layers=2       #隐层层数
 input_size=7
 output_size=1
 lr=0.0006         #学习率
@@ -72,7 +73,7 @@ def lstm(X):
     input=tf.reshape(X,[-1,input_size])  #需要将tensor转成2维进行计算，计算后的结果作为隐藏层的输入
     input_rnn=tf.matmul(input,w_in)+b_in
     input_rnn=tf.reshape(input_rnn,[-1,time_step,rnn_unit])  #将tensor转成3维，作为lstm cell的输入
-    cell=tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(rnn_unit) for i in range(lstm_layers)])
     init_state=cell.zero_state(batch_size,dtype=tf.float32)
     output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32)
     output=tf.reshape(output_rnn,[-1,rnn_unit]) 
@@ -109,7 +110,7 @@ train_lstm()
 def prediction(time_step=20):
     X=tf.placeholder(tf.float32, shape=[None,time_step,input_size])
     mean,std,test_x,test_y=get_test_data(time_step)
-    with tf.variable_scope("sec_lstm",reuse=True):
+    with tf.variable_scope("sec_lstm",reuse=tf.AUTO_REUSE):
         pred,_=lstm(X)
     saver=tf.train.Saver(tf.global_variables())
     with tf.Session() as sess:
