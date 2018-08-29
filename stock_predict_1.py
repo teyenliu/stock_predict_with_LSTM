@@ -18,7 +18,8 @@ normalize_data=normalize_data[:,np.newaxis]
 
 
 time_step=20      
-rnn_unit=10       
+rnn_unit=10      
+lstm_layers=2
 batch_size=60     
 input_size=1      
 output_size=1     
@@ -50,7 +51,7 @@ def lstm(batch):
     input=tf.reshape(X,[-1,input_size])  
     input_rnn=tf.matmul(input,w_in)+b_in
     input_rnn=tf.reshape(input_rnn,[-1,time_step,rnn_unit])   
-    cell=tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(rnn_unit) for i in range(lstm_layers)])
     init_state=cell.zero_state(batch,dtype=tf.float32)
     output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32)
     output=tf.reshape(output_rnn,[-1,rnn_unit]) 
@@ -90,7 +91,7 @@ train_lstm()
 
 
 def prediction():
-    with tf.variable_scope("sec_lstm",reuse=True):
+    with tf.variable_scope("sec_lstm",reuse=tf.AUTO_REUSE):
         pred,_=lstm(1)    
     saver=tf.train.Saver(tf.global_variables())
     with tf.Session() as sess:
