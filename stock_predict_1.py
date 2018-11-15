@@ -53,7 +53,7 @@ def lstm(batch):
     input=tf.reshape(X,[-1,input_size])  
     input_rnn=tf.matmul(input,w_in)+b_in
     input_rnn=tf.reshape(input_rnn,[-1,time_step,rnn_unit])   
-    cell=tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    cell = tf.nn.rnn_cell.MultiRNNCell([tf.nn.rnn_cell.BasicLSTMCell(rnn_unit) for i in range(lstm_layers)])
     init_state=cell.zero_state(batch,dtype=tf.float32)
     output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32)
     output=tf.reshape(output_rnn,[-1,rnn_unit]) 

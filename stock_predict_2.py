@@ -5,7 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-rnn_unit=10       #隐层数量
+rnn_unit=10         #隐层神经元的个数
+lstm_layers=2       #隐层层数
 input_size=7
 output_size=1
 lr=0.0006         #学习率
@@ -51,7 +52,7 @@ def get_test_data(time_step=20,test_begin=5800):
 
 
 #——————————————————定义神经网络变量——————————————————
-#输入层、输出层权重、偏置
+#输入层、输出层权重、偏置、dropout参数
 
 weights={
          'in':tf.Variable(tf.random_normal([input_size,rnn_unit])),
@@ -61,8 +62,15 @@ biases={
         'in':tf.Variable(tf.constant(0.1,shape=[rnn_unit,])),
         'out':tf.Variable(tf.constant(0.1,shape=[1,]))
        }
-
+keep_prob = tf.placeholder(tf.float32, name='keep_prob')    
 #——————————————————定义神经网络变量——————————————————
+def lstmCell():
+    #basicLstm单元
+    basicLstm = tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    # dropout
+    drop = tf.nn.rnn_cell.DropoutWrapper(basicLstm, output_keep_prob=keep_prob)
+    return basicLstm
+
 def lstm(X):
     
     batch_size=tf.shape(X)[0]
@@ -72,7 +80,7 @@ def lstm(X):
     input=tf.reshape(X,[-1,input_size])  #需要将tensor转成2维进行计算，计算后的结果作为隐藏层的输入
     input_rnn=tf.matmul(input,w_in)+b_in
     input_rnn=tf.reshape(input_rnn,[-1,time_step,rnn_unit])  #将tensor转成3维，作为lstm cell的输入
-    cell=tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    cell = tf.nn.rnn_cell.MultiRNNCell([lstmCell() for i in range(lstm_layers)])
     init_state=cell.zero_state(batch_size,dtype=tf.float32)
     output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32)
     output=tf.reshape(output_rnn,[-1,rnn_unit]) 
@@ -97,11 +105,11 @@ def train_lstm(batch_size=60,time_step=20,train_begin=2000,train_end=5800):
         sess.run(tf.global_variables_initializer())
         for i in range(10):     #这个迭代次数，可以更改，越大预测效果会更好，但需要更长时间
             for step in range(len(batch_index)-1):
-                _,loss_=sess.run([train_op,loss],feed_dict={X:train_x[batch_index[step]:batch_index[step+1]],Y:train_y[batch_index[step]:batch_index[step+1]]})
+                _,loss_=sess.run([train_op,loss],feed_dict={X:train_x[batch_index[step]:batch_index[step+1]],Y:train_y[batch_index[step]:batch_index[step+1]],keep_prob:0.5})
             print("Number of iterations:",i," loss:",loss_)
         print("model_save: ",saver.save(sess,'model_save2\\modle.ckpt'))
-        #我是在window下跑的，这个地址是存放模型的地方，模型参数文件名为modle.ckpt
-        #在Linux下面用 'model_save2/modle.ckpt'
+        #I run the code on windows 10,so use  'model_save2\\modle.ckpt'
+        #if you run it on Linux,please use  'model_save2/modle.ckpt'
         print("The train has finished")
 train_lstm()
 
@@ -109,7 +117,7 @@ train_lstm()
 def prediction(time_step=20):
     X=tf.placeholder(tf.float32, shape=[None,time_step,input_size])
     mean,std,test_x,test_y=get_test_data(time_step)
-    with tf.variable_scope("sec_lstm",reuse=True):
+    with tf.variable_scope("sec_lstm",reuse=tf.AUTO_REUSE):
         pred,_=lstm(X)
     saver=tf.train.Saver(tf.global_variables())
     with tf.Session() as sess:
@@ -118,7 +126,7 @@ def prediction(time_step=20):
         saver.restore(sess, module_file)
         test_predict=[]
         for step in range(len(test_x)-1):
-          prob=sess.run(pred,feed_dict={X:[test_x[step]]})
+          prob=sess.run(pred,feed_dict={X:[test_x[step]],keep_prob:1})
           predict=prob.reshape((-1))
           test_predict.extend(predict)
         test_y=np.array(test_y)*std[7]+mean[7]
