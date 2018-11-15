@@ -8,9 +8,10 @@ import tensorflow as tf
 rnn_unit=25       #隐层数量
 input_size=8
 output_size=1
-lr=0.0006         #学习率
+lr=0.0003         #学习率
 time_step=5
 batch_size=60
+lstm_layers=2
 
 #——————————————————导入数据——————————————————————
 data = pd.read_csv("2330_v2.csv", header=0, sep='\t', 
@@ -86,8 +87,16 @@ biases={
         'in':tf.Variable(tf.constant(0.1,shape=[rnn_unit,])),
         'out':tf.Variable(tf.constant(0.1,shape=[1,]))
        }
+keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
 #——————————————————定义神经网络变量——————————————————
+def lstmCell():
+    #basicLstm单元
+    basicLstm = tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    # dropout
+    drop = tf.nn.rnn_cell.DropoutWrapper(basicLstm, output_keep_prob=keep_prob)
+    return basicLstm
+
 def lstm(X):
     
     batch_size=tf.shape(X)[0]
@@ -98,8 +107,10 @@ def lstm(X):
     input_rnn=tf.matmul(input,w_in)+b_in
     input_rnn=tf.reshape(input_rnn,[-1,time_step,rnn_unit])  #将tensor转成3维，作为lstm cell的输入
     cell=tf.nn.rnn_cell.BasicLSTMCell(rnn_unit)
+    cell=tf.nn.rnn_cell.MultiRNNCell([lstmCell() for i in range(lstm_layers)])
     init_state=cell.zero_state(batch_size,dtype=tf.float32)
-    output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32)
+    output_rnn,final_states=tf.nn.dynamic_rnn(cell, input_rnn,initial_state=init_state, dtype=tf.float32,
+                                              swap_memory=True)
     output=tf.reshape(output_rnn,[-1,rnn_unit]) 
     w_out=weights['out']
     b_out=biases['out']
@@ -134,7 +145,7 @@ train_lstm()
 def prediction(time_step=time_step):
     X=tf.placeholder(tf.float32, shape=[None,time_step,input_size])
     mean,std,test_x,test_y=get_test_data(time_step)
-    with tf.variable_scope("sec_lstm",reuse=True):
+    with tf.variable_scope("sec_lstm",reuse=tf.AUTO_REUSE):
         pred,_=lstm(X)
     saver=tf.train.Saver(tf.global_variables())
     with tf.Session() as sess:
