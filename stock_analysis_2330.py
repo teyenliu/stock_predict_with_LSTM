@@ -1,3 +1,4 @@
+# coding=utf-8
 # Feature Importance
 """
  1) close                          0.317028

@@ -10,7 +10,7 @@ input_size=8
 output_size=1
 lr=0.0003         #学习率
 time_step=5
-batch_size=60
+batch_size=20
 lstm_layers=2
 
 #——————————————————导入数据——————————————————————
@@ -131,7 +131,7 @@ def train_lstm(batch_size=batch_size,time_step=time_step,train_begin=0,train_end
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        for i in range(150):     #这个迭代次数，可以更改，越大预测效果会更好，但需要更长时间
+        for i in range(250):     #这个迭代次数，可以更改，越大预测效果会更好，但需要更长时间
             for step in range(len(batch_index)-1):
                 _,loss_=sess.run([train_op,loss],feed_dict={X:train_x[batch_index[step]:batch_index[step+1]],Y:train_y[batch_index[step]:batch_index[step+1]]})
             print("Number of iterations:",i," loss:",loss_)
@@ -161,6 +161,15 @@ def prediction(time_step=time_step):
         test_predict=np.array(test_predict)*std[8]+mean[8]
         print("test_predict:", test_predict)
         print("test_y:", test_y)
+
+        from sklearn.metrics import r2_score
+        from sklearn.metrics import mean_squared_error
+
+        print('MSE train: %.3f' % (
+        mean_squared_error(test_y, test_predict)))
+
+        print('R^2 train: %.3f' % (
+        r2_score(test_y, test_predict)))
 
         acc=np.average(np.abs(test_predict-test_y[:len(test_predict)])/test_y[:len(test_predict)])  #偏差程度
         print("The accuracy of this predict:", acc)
