@@ -9,7 +9,7 @@ rnn_unit=25       #隐层数量
 input_size=8
 output_size=1
 lr=0.0003         #学习率
-time_step=5
+time_step=15
 batch_size=20
 lstm_layers=2
 
@@ -59,7 +59,7 @@ def get_train_data(batch_size=batch_size,time_step=time_step,train_begin=0,train
 
 
 #获取测试集
-def get_test_data(time_step=time_step,test_begin=data_num-30):
+def get_test_data(time_step=time_step,test_begin=data_num-time_step):
     data_test=data[test_begin:]
     mean=np.mean(data_test,axis=0)
     std=np.std(data_test,axis=0)
